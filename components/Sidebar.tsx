@@ -1,6 +1,6 @@
 import React from 'react';
 import { ViewState } from '../types';
-import { LayoutDashboard, History, Tags, DollarSign, Menu, X } from 'lucide-react';
+import { LayoutDashboard, History, Tags, DollarSign, Menu, X, LogOut } from 'lucide-react';
 
 interface SidebarProps {
   currentView: ViewState;
@@ -8,9 +8,10 @@ interface SidebarProps {
   isOpen: boolean;
   toggleSidebar: () => void;
   onOpenModal: () => void;
+  onSignOut: () => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ currentView, onChangeView, isOpen, toggleSidebar, onOpenModal }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ currentView, onChangeView, isOpen, toggleSidebar, onOpenModal, onSignOut }) => {
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -69,14 +70,23 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onChangeView, isO
         </div>
 
         <div className="absolute bottom-0 w-full p-6 border-t border-gray-800">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center text-gray-300 font-bold">
-              U
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center text-gray-300 font-bold">
+                U
+              </div>
+              <div>
+                <p className="text-sm font-medium text-white">Usuário</p>
+                <p className="text-xs text-gray-500">Online</p>
+              </div>
             </div>
-            <div>
-              <p className="text-sm font-medium text-white">Usuário Demo</p>
-              <p className="text-xs text-gray-500">Free Plan</p>
-            </div>
+            <button
+              onClick={onSignOut}
+              className="text-gray-500 hover:text-red-400 transition-colors p-2"
+              title="Sair"
+            >
+              <LogOut size={20} />
+            </button>
           </div>
         </div>
       </aside>

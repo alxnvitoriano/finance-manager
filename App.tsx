@@ -4,10 +4,21 @@ import { Dashboard } from './components/Dashboard';
 import { History } from './components/History';
 import { CategoryManager } from './components/CategoryManager';
 import { TransactionModal } from './components/TransactionModal';
+import { Login } from './components/Login';
 import { Transaction, ViewState, Category } from './types';
-import { getTransactions, saveTransactions, getCategories, saveCategories } from './services/storage';
+import {
+  getTransactions,
+  addTransaction,
+  deleteTransaction,
+  getCategories,
+  addCategory,
+  deleteCategory
+} from './services/storage';
+import { useAuth } from './contexts/AuthContext';
 
 function App() {
+  const { user, loading, signOut } = useAuth();
+
   // State
   const [currentView, setCurrentView] = useState<ViewState>('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -16,40 +27,94 @@ function App() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
 
-  // Load data on mount
+  // Load data on mount or when user changes
   useEffect(() => {
-    setTransactions(getTransactions());
-    setCategories(getCategories());
-  }, []);
+    if (user) {
+      loadData();
+    }
+  }, [user]);
+
+  const loadData = async () => {
+    try {
+      const [txs, cats] = await Promise.all([
+        getTransactions(),
+        getCategories()
+      ]);
+      setTransactions(txs);
+      setCategories(cats);
+    } catch (error) {
+      console.error('Error loading data:', error);
+    }
+  };
 
   // CRUD Operations
-  const handleSaveTransaction = (data: Omit<Transaction, 'id'>) => {
-    const newTx: Transaction = {
-      id: Date.now().toString(),
-      ...data
-    };
-    const updated = [newTx, ...transactions];
-    setTransactions(updated);
-    saveTransactions(updated);
+  const handleSaveTransaction = async (data: Omit<Transaction, 'id'>) => {
+    try {
+      const newTx: Transaction = {
+        id: crypto.randomUUID(),
+        ...data
+      };
+
+      // Optimistic update
+      setTransactions(prev => [newTx, ...prev]);
+
+      await addTransaction(newTx);
+      // Optionally reload to confirm
+      // loadData(); 
+    } catch (error) {
+      console.error('Error saving transaction:', error);
+      // Rollback if needed
+      loadData();
+    }
   };
 
-  const handleDeleteTransaction = (id: string) => {
-    const updated = transactions.filter(t => t.id !== id);
-    setTransactions(updated);
-    saveTransactions(updated);
+  const handleDeleteTransaction = async (id: string) => {
+    try {
+      // Optimistic update
+      setTransactions(prev => prev.filter(t => t.id !== id));
+
+      await deleteTransaction(id);
+    } catch (error) {
+      console.error('Error deleting transaction:', error);
+      loadData();
+    }
   };
 
-  const handleAddCategory = (category: Category) => {
-    const updated = [...categories, category];
-    setCategories(updated);
-    saveCategories(updated);
+  const handleAddCategory = async (category: Category) => {
+    try {
+      // Optimistic update
+      setCategories(prev => [...prev, category]);
+
+      await addCategory(category);
+    } catch (error) {
+      console.error('Error adding category:', error);
+      loadData();
+    }
   };
 
-  const handleDeleteCategory = (id: string) => {
-    const updated = categories.filter(c => c.id !== id);
-    setCategories(updated);
-    saveCategories(updated);
+  const handleDeleteCategory = async (id: string) => {
+    try {
+      // Optimistic update
+      setCategories(prev => prev.filter(c => c.id !== id));
+
+      await deleteCategory(id);
+    } catch (error) {
+      console.error('Error deleting category:', error);
+      loadData();
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-neon-500"></div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Login />;
+  }
 
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100 flex font-sans antialiased">
@@ -59,6 +124,7 @@ function App() {
         isOpen={isSidebarOpen}
         toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
         onOpenModal={() => setIsModalOpen(true)}
+        onSignOut={signOut}
       />
 
       <main className="flex-1 md:ml-64 min-h-screen flex flex-col">

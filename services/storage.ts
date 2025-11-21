@@ -1,34 +1,54 @@
+import { supabase } from './supabase';
 import { Transaction, Category } from '../types';
 import { DEFAULT_CATEGORIES } from '../constants';
 
-const STORAGE_KEYS = {
-  TRANSACTIONS: 'finflux_transactions',
-  CATEGORIES: 'finflux_categories',
-};
+export const getTransactions = async (): Promise<Transaction[]> => {
+  const { data, error } = await supabase
+    .from('transactions')
+    .select('*')
+    .order('date', { ascending: false });
 
-export const getTransactions = (): Transaction[] => {
-  const stored = localStorage.getItem(STORAGE_KEYS.TRANSACTIONS);
-  if (!stored) {
-    // Initialize with mock data if empty
-    localStorage.setItem(STORAGE_KEYS.TRANSACTIONS, JSON.stringify([]));
+  if (error) {
+    console.error('Error fetching transactions:', error);
     return [];
   }
-  return JSON.parse(stored);
+  return data || [];
 };
 
-export const saveTransactions = (transactions: Transaction[]) => {
-  localStorage.setItem(STORAGE_KEYS.TRANSACTIONS, JSON.stringify(transactions));
+export const addTransaction = async (transaction: Transaction) => {
+  const { error } = await supabase.from('transactions').insert(transaction);
+  if (error) throw error;
 };
 
-export const getCategories = (): Category[] => {
-  const stored = localStorage.getItem(STORAGE_KEYS.CATEGORIES);
-  if (!stored) {
-    localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(DEFAULT_CATEGORIES));
+export const deleteTransaction = async (id: string) => {
+  const { error } = await supabase.from('transactions').delete().eq('id', id);
+  if (error) throw error;
+};
+
+export const getCategories = async (): Promise<Category[]> => {
+  const { data, error } = await supabase.from('categories').select('*');
+
+  if (error) {
+    console.error('Error fetching categories:', error);
     return DEFAULT_CATEGORIES;
   }
-  return JSON.parse(stored);
+
+  if (!data || data.length === 0) {
+    // If no categories in DB, insert defaults (optional, or just return defaults)
+    // For now, let's just return defaults if empty, or maybe we should seed them?
+    // Let's return DEFAULT_CATEGORIES if empty to be safe for now.
+    return DEFAULT_CATEGORIES;
+  }
+
+  return data;
 };
 
-export const saveCategories = (categories: Category[]) => {
-  localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(categories));
+export const addCategory = async (category: Category) => {
+  const { error } = await supabase.from('categories').insert(category);
+  if (error) throw error;
+};
+
+export const deleteCategory = async (id: string) => {
+  const { error } = await supabase.from('categories').delete().eq('id', id);
+  if (error) throw error;
 };
