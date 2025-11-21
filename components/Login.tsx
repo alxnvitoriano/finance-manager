@@ -21,7 +21,6 @@ export const Login = () => {
                     password,
                 });
                 if (error) throw error;
-                alert('Verifique seu email para confirmar o cadastro!');
             } else {
                 const { error } = await supabase.auth.signInWithPassword({
                     email,
